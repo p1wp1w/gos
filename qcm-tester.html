@@ -34,6 +34,30 @@
             margin-bottom: 10px;
         }
 
+        .loading-section {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 25px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         .upload-section {
             background: white;
             padding: 25px;
@@ -95,28 +119,45 @@
             background-color: #6a3f96;
         }
 
-        .example-section {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            font-size: 0.9em;
-        }
-
-        .example-section h3 {
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-
-        .example-section code {
+        .settings-section {
             background: white;
-            padding: 10px;
-            border-radius: 3px;
-            display: block;
-            overflow-x: auto;
-            font-family: 'Courier New', monospace;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .settings-title {
             color: #333;
-            line-height: 1.4;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .settings-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-wrapper label {
+            cursor: pointer;
+            color: #333;
+            font-weight: 600;
+            user-select: none;
         }
 
         .part-selector {
@@ -530,6 +571,11 @@
             .part-buttons {
                 grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
             }
+
+            .settings-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
     </style>
 </head>
@@ -540,31 +586,33 @@
             <p>Auto Multiple Choice Questions Tester</p>
         </div>
 
-        <!-- Upload Section -->
-        <div class="upload-section" id="uploadSection">
-            <h2>Load Questions</h2>
+        <!-- Loading Section -->
+        <div class="loading-section" id="loadingSection">
+            <h3>Loading Questions...</h3>
+            <div class="spinner"></div>
+            <p id="loadingStatus">Fetching questions from qs file...</p>
+        </div>
+
+        <!-- Upload Section (fallback) -->
+        <div class="upload-section" id="uploadSection" style="display: none;">
+            <h2>Load Questions (Manual)</h2>
             <div class="file-input-wrapper">
                 <input type="file" id="fileInput" accept=".json" />
                 <button onclick="loadFile()">Load JSON</button>
             </div>
-            <div class="example-section">
-                <h3>Expected JSON Format (Array of Questions):</h3>
-                <code>[
-  {
-    "id": 1,
-    "question": "Т-лимфоциты человека происходят из",
-    "answers": [
-      "Унипотентного предшественника...",
-      "Колониеобразующей...",
-      "Лимфоцитов лимфы",
-      "Клеток селезенки"
-    ],
-    "correct": 0
-  },
-  ...
-]</code>
-            </div>
             <div id="loadMessage"></div>
+            <button onclick="retryAutoLoad()" style="margin-top: 10px; width: 100%;">Retry Auto-Load</button>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="settings-section" id="settingsSection" style="display: none;">
+            <div class="settings-title">⚙️ Test Settings</div>
+            <div class="settings-group">
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" id="shuffleCheckbox" checked>
+                    <label for="shuffleCheckbox">🔀 Shuffle Answers</label>
+                </div>
+            </div>
         </div>
 
         <!-- Part Selector -->
@@ -656,7 +704,58 @@
         let testFinished = false;
         let selectedPart = null;
         let answerChecked = false;
+        let answerMapping = {}; // Maps display index to original correct index
         const QUESTIONS_PER_PART = 100;
+
+        // Auto-load questions on page load
+        window.addEventListener('load', () => {
+            autoLoadQuestions();
+        });
+
+        function autoLoadQuestions() {
+            document.getElementById('loadingStatus').textContent = 'Fetching questions from qs file...';
+            
+            fetch('qs')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to load qs file');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    allQuestions = data;
+                    
+                    if (!Array.isArray(allQuestions) || allQuestions.length === 0) {
+                        throw new Error('Invalid or empty question file');
+                    }
+
+                    // Validate questions format
+                    allQuestions.forEach((q, idx) => {
+                        if (!q.question || !q.answers || q.correct === undefined) {
+                            throw new Error(`Question ${idx + 1} is missing required fields`);
+                        }
+                        if (!Array.isArray(q.answers)) {
+                            throw new Error(`Question ${idx + 1}: answers must be an array`);
+                        }
+                    });
+
+                    showPartSelector();
+                    document.getElementById('loadingSection').style.display = 'none';
+                    document.getElementById('settingsSection').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error loading questions:', error);
+                    document.getElementById('loadingStatus').textContent = 'Could not auto-load. Please use manual upload.';
+                    document.getElementById('uploadSection').style.display = 'block';
+                    document.getElementById('loadingSection').style.display = 'none';
+                });
+        }
+
+        function retryAutoLoad() {
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('loadingSection').style.display = 'block';
+            autoLoadQuestions();
+        }
 
         function loadFile() {
             const fileInput = document.getElementById('fileInput');
@@ -690,6 +789,8 @@
                     messageDiv.innerHTML = '<div class="success-message">✓ Loaded ' + allQuestions.length + ' questions successfully!</div>';
                     
                     setTimeout(() => {
+                        document.getElementById('uploadSection').style.display = 'none';
+                        document.getElementById('settingsSection').style.display = 'block';
                         showPartSelector();
                     }, 500);
                 } catch (error) {
@@ -701,8 +802,6 @@
         }
 
         function showPartSelector() {
-            document.getElementById('uploadSection').style.display = 'none';
-            
             // Calculate number of parts
             const numParts = Math.ceil(allQuestions.length / QUESTIONS_PER_PART);
             const partInfo = document.getElementById('partInfo');
@@ -738,6 +837,7 @@
             currentIndex = 0;
             testFinished = false;
             answerChecked = false;
+            answerMapping = {};
             
             document.getElementById('partSelector').classList.remove('active');
             document.getElementById('testSection').classList.add('active');
@@ -745,6 +845,15 @@
             
             displayQuestion();
             window.scrollTo(0, 0);
+        }
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
         }
 
         function displayQuestion() {
@@ -763,11 +872,24 @@
             const progress = ((currentIndex + 1) / questions.length) * 100;
             document.getElementById('progressFill').style.width = progress + '%';
 
+            // Handle answer shuffling
+            let displayAnswers = question.answers;
+            answerMapping[currentIndex] = question.correct;
+
+            if (document.getElementById('shuffleCheckbox').checked) {
+                const answerIndices = [...question.answers.keys()];
+                const shuffledIndices = shuffleArray(answerIndices);
+                displayAnswers = shuffledIndices.map(i => question.answers[i]);
+                // Create mapping of display index to original correct index
+                const correctDisplayIndex = shuffledIndices.indexOf(question.correct);
+                answerMapping[currentIndex] = correctDisplayIndex;
+            }
+
             // Render answers
             const container = document.getElementById('answersContainer');
             container.innerHTML = '';
             
-            question.answers.forEach((answer, idx) => {
+            displayAnswers.forEach((answer, idx) => {
                 const label = document.createElement('label');
                 label.className = 'answer-option';
                 
@@ -827,7 +949,8 @@
 
             const question = questions[currentIndex];
             const selectedAnswer = answers[currentIndex];
-            const isCorrect = selectedAnswer === question.correct;
+            const correctAnswerDisplay = answerMapping[currentIndex];
+            const isCorrect = selectedAnswer === correctAnswerDisplay;
             
             // Show feedback
             const feedbackSection = document.getElementById('feedbackSection');
@@ -837,12 +960,12 @@
             if (isCorrect) {
                 feedbackSection.className = 'feedback-section show feedback-correct';
                 feedbackTitle.textContent = '✓ Correct!';
-                feedbackText.innerHTML = '<strong>Your answer:</strong> ' + question.answers[selectedAnswer];
+                feedbackText.innerHTML = '<strong>Your answer:</strong> ' + question.answers[question.correct];
             } else {
                 feedbackSection.className = 'feedback-section show feedback-incorrect';
                 feedbackTitle.textContent = '✗ Incorrect!';
                 feedbackText.innerHTML = `
-                    <strong>Your answer:</strong> ${question.answers[selectedAnswer]}<br><br>
+                    <strong>Your answer:</strong> ${question.answers[question.correct] === question.answers[selectedAnswer] ? question.answers[selectedAnswer] : 'Different from correct'}<br><br>
                     <strong>Correct answer:</strong> ${question.answers[question.correct]}
                 `;
             }
@@ -851,7 +974,7 @@
             const options = document.querySelectorAll('.answer-option');
             options.forEach((opt, idx) => {
                 opt.classList.remove('selected');
-                if (idx === question.correct) {
+                if (idx === correctAnswerDisplay) {
                     opt.classList.add('correct');
                 } else if (idx === selectedAnswer && !isCorrect) {
                     opt.classList.add('incorrect');
@@ -872,7 +995,7 @@
             questions.forEach((q, idx) => {
                 if (answers[idx] === undefined) {
                     unanswered++;
-                } else if (answers[idx] === q.correct) {
+                } else if (answers[idx] === answerMapping[idx]) {
                     correct++;
                 } else {
                     incorrect++;
@@ -910,7 +1033,7 @@
             questions.forEach((q, idx) => {
                 if (answers[idx] === undefined) {
                     unanswered++;
-                } else if (answers[idx] === q.correct) {
+                } else if (answers[idx] === answerMapping[idx]) {
                     correct++;
                 } else {
                     incorrect++;
@@ -936,6 +1059,7 @@
             currentIndex = 0;
             testFinished = false;
             answerChecked = false;
+            answerMapping = {};
             document.getElementById('testSection').classList.add('active');
             document.getElementById('resultsSection').classList.add('hidden');
             displayQuestion();
@@ -962,6 +1086,7 @@
             currentIndex = 0;
             selectedPart = null;
             answerChecked = false;
+            answerMapping = {};
             window.scrollTo(0, 0);
         }
     </script>
