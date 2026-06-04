@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QCM Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .upload-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .upload-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .file-input-wrapper {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="file"] {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        input[type="file"]:hover {
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 10px 25px;
+            background-color: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #5568d3;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button.secondary {
+            background-color: #764ba2;
+        }
+
+        button.secondary:hover {
+            background-color: #6a3f96;
+        }
+
+        .example-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .example-section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .example-section code {
+            background: white;
+            padding: 10px;
+            border-radius: 3px;
+            display: block;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .part-selector {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            display: none;
+        }
+
+        .part-selector.active {
+            display: block;
+        }
+
+        .part-selector h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .part-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+        }
+
+        .part-btn {
+            padding: 15px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            color: #333;
+        }
+
+        .part-btn:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .part-btn.selected {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .test-section {
+            display: none;
+        }
+
+        .test-section.active {
+            display: block;
+        }
+
+        .progress-bar {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .progress-line {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+
+        .score-info {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 0.9em;
+            flex-wrap: wrap;
+        }
+
+        .score-correct {
+            color: #4caf50;
+        }
+
+        .score-incorrect {
+            color: #f44336;
+        }
+
+        .score-unanswered {
+            color: #ff9800;
+        }
+
+        .question-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 20px;
+        }
+
+        .question-number {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            white-space: nowrap;
+            margin-left: 10px;
+        }
+
+        .question-text {
+            color: #333;
+            font-size: 1.2em;
+            font-weight: 600;
+            line-height: 1.5;
+            margin-bottom: 25px;
+            flex: 1;
+        }
+
+        .answers-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .answer-option {
+            display: flex;
+            align-items: flex-start;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .answer-option:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+
+        .answer-option input[type="radio"] {
+            margin-right: 15px;
+            margin-top: 3px;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+        }
+
+        .answer-text {
+            flex: 1;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .answer-option.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .answer-option.correct {
+            border-color: #4caf50;
+            background: #f1f8f4;
+        }
+
+        .answer-option.incorrect {
+            border-color: #f44336;
+            background: #fdf5f5;
+        }
+
+        .answer-option.correct .answer-text::after {
+            content: ' ✓';
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .answer-option.incorrect .answer-text::after {
+            content: ' ✗';
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .feedback-section {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .feedback-section.show {
+            display: block;
+        }
+
+        .feedback-correct {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            color: #2e7d32;
+        }
+
+        .feedback-incorrect {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            color: #c62828;
+        }
+
+        .feedback-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .check-answer-btn {
+            background-color: #4caf50;
+            margin-top: 15px;
+            width: 100%;
+            padding: 12px;
+            font-size: 1.05em;
+        }
+
+        .check-answer-btn:hover {
+            background-color: #45a049;
+        }
+
+        .check-answer-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .navigation {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            flex: 1;
+            min-width: 100px;
+            padding: 12px 20px;
+            font-size: 1em;
+            font-weight: 600;
+        }
+
+        .nav-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .results-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .results-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .score-display {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 20px 0;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .results-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .result-card {
+            padding: 20px;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .result-card .number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .result-card .label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .result-card.success .number {
+            color: #4caf50;
+        }
+
+        .result-card.error .number {
+            color: #f44336;
+        }
+
+        .result-card.warning .number {
+            color: #ff9800;
+        }
+
+        .result-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .result-buttons button {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border-left: 4px solid #c62828;
+        }
+
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2e7d32;
+        }
+
+        .info-message {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border-left: 4px solid #1565c0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .part-info {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            color: #1565c0;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .results-details {
+                grid-template-columns: 1fr;
+            }
+
+            .question-header {
+                flex-direction: column;
+            }
+
+            .question-number {
+                margin-left: 0;
+                margin-top: 10px;
+                align-self: flex-start;
+            }
+
+            .file-input-wrapper {
+                flex-direction: column;
+            }
+
+            .score-info {
+                gap: 10px;
+            }
+
+            .part-buttons {
+                grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📝 QCM Tester</h1>
+            <p>Auto Multiple Choice Questions Tester</p>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="upload-section" id="uploadSection">
+            <h2>Load Questions</h2>
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput" accept=".json" />
+                <button onclick="loadFile()">Load JSON</button>
+            </div>
+            <div class="example-section">
+                <h3>Expected JSON Format (Array of Questions):</h3>
+                <code>[
+  {
+    "id": 1,
+    "question": "Т-лимфоциты человека происходят из",
+    "answers": [
+      "Унипотентного предшественника...",
+      "Колониеобразующей...",
+      "Лимфоцитов лимфы",
+      "Клеток селезенки"
+    ],
+    "correct": 0
+  },
+  ...
+]</code>
+            </div>
+            <div id="loadMessage"></div>
+        </div>
+
+        <!-- Part Selector -->
+        <div class="part-selector" id="partSelector">
+            <h3>Select a Part to Test</h3>
+            <div id="partInfo" class="part-info"></div>
+            <div class="part-buttons" id="partButtons"></div>
+        </div>
+
+        <!-- Test Section -->
+        <div class="test-section" id="testSection">
+            <!-- Part Info -->
+            <div class="part-info" id="testPartInfo"></div>
+
+            <!-- Progress Bar -->
+            <div class="progress-bar">
+                <div class="progress-info">
+                    <span id="progressText">Question 1 of 100</span>
+                </div>
+                <div class="progress-line">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="score-info">
+                    <span class="score-correct">✓ Correct: <span id="scoreCorrect">0</span></span>
+                    <span class="score-incorrect">✗ Incorrect: <span id="scoreIncorrect">0</span></span>
+                    <span class="score-unanswered">⊘ Unanswered: <span id="scoreUnanswered">0</span></span>
+                </div>
+            </div>
+
+            <!-- Question Card -->
+            <div class="question-card">
+                <div class="question-header">
+                    <div class="question-text" id="questionText"></div>
+                    <span class="question-number" id="questionNumber"></span>
+                </div>
+                <div class="answers-container" id="answersContainer"></div>
+                
+                <!-- Feedback Section -->
+                <div class="feedback-section" id="feedbackSection">
+                    <div class="feedback-title" id="feedbackTitle"></div>
+                    <div id="feedbackText"></div>
+                </div>
+
+                <!-- Check Answer Button -->
+                <button class="check-answer-btn" id="checkAnswerBtn" onclick="checkAnswer()">Check Answer</button>
+
+                <!-- Navigation -->
+                <div class="navigation">
+                    <button id="prevBtn" onclick="previousQuestion()" class="nav-button">← Previous</button>
+                    <button id="nextBtn" onclick="nextQuestion()" class="nav-button">Next →</button>
+                    <button id="finishBtn" onclick="finishTest()" class="nav-button" style="display: none;">Finish Test</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <div class="results-section">
+                <h2>Test Completed!</h2>
+                <div class="score-display" id="scorePercentage"></div>
+                <div class="results-details">
+                    <div class="result-card success">
+                        <div class="number" id="finalCorrect">0</div>
+                        <div class="label">Correct Answers</div>
+                    </div>
+                    <div class="result-card error">
+                        <div class="number" id="finalIncorrect">0</div>
+                        <div class="label">Incorrect Answers</div>
+                    </div>
+                    <div class="result-card warning">
+                        <div class="number" id="finalUnanswered">0</div>
+                        <div class="label">Unanswered</div>
+                    </div>
+                </div>
+                <div class="result-buttons">
+                    <button onclick="restartTest()">Restart Current Part</button>
+                    <button onclick="selectPart()">Select Different Part</button>
+                    <button onclick="loadNewFile()">Load New File</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allQuestions = [];
+        let questions = [];
+        let currentIndex = 0;
+        let answers = {};
+        let testFinished = false;
+        let selectedPart = null;
+        let answerChecked = false;
+        const QUESTIONS_PER_PART = 100;
+
+        function loadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const messageDiv = document.getElementById('loadMessage');
+
+            if (!file) {
+                messageDiv.innerHTML = '<div class="error-message">Please select a file</div>';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    allQuestions = JSON.parse(e.target.result);
+                    
+                    if (!Array.isArray(allQuestions) || allQuestions.length === 0) {
+                        throw new Error('JSON must be an array with at least one question');
+                    }
+
+                    // Validate questions format
+                    allQuestions.forEach((q, idx) => {
+                        if (!q.question || !q.answers || q.correct === undefined) {
+                            throw new Error(`Question ${idx + 1} is missing required fields`);
+                        }
+                        if (!Array.isArray(q.answers)) {
+                            throw new Error(`Question ${idx + 1}: answers must be an array`);
+                        }
+                    });
+
+                    messageDiv.innerHTML = '<div class="success-message">✓ Loaded ' + allQuestions.length + ' questions successfully!</div>';
+                    
+                    setTimeout(() => {
+                        showPartSelector();
+                    }, 500);
+                } catch (error) {
+                    messageDiv.innerHTML = '<div class="error-message">Error: ' + error.message + '</div>';
+                    allQuestions = [];
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function showPartSelector() {
+            document.getElementById('uploadSection').style.display = 'none';
+            
+            // Calculate number of parts
+            const numParts = Math.ceil(allQuestions.length / QUESTIONS_PER_PART);
+            const partInfo = document.getElementById('partInfo');
+            partInfo.innerHTML = `Total questions: ${allQuestions.length} | Parts: ${numParts} (${QUESTIONS_PER_PART} questions each)`;
+            
+            // Create part buttons
+            const partButtons = document.getElementById('partButtons');
+            partButtons.innerHTML = '';
+            
+            for (let i = 0; i < numParts; i++) {
+                const startQ = i * QUESTIONS_PER_PART + 1;
+                const endQ = Math.min((i + 1) * QUESTIONS_PER_PART, allQuestions.length);
+                
+                const btn = document.createElement('button');
+                btn.className = 'part-btn';
+                btn.textContent = `Part ${i + 1}`;
+                btn.title = `Questions ${startQ} - ${endQ}`;
+                btn.onclick = () => selectPartTest(i);
+                
+                partButtons.appendChild(btn);
+            }
+            
+            document.getElementById('partSelector').classList.add('active');
+        }
+
+        function selectPartTest(partIndex) {
+            selectedPart = partIndex;
+            const startIdx = partIndex * QUESTIONS_PER_PART;
+            const endIdx = Math.min(startIdx + QUESTIONS_PER_PART, allQuestions.length);
+            
+            questions = allQuestions.slice(startIdx, endIdx);
+            answers = {};
+            currentIndex = 0;
+            testFinished = false;
+            answerChecked = false;
+            
+            document.getElementById('partSelector').classList.remove('active');
+            document.getElementById('testSection').classList.add('active');
+            document.getElementById('resultsSection').classList.add('hidden');
+            
+            displayQuestion();
+            window.scrollTo(0, 0);
+        }
+
+        function displayQuestion() {
+            const question = questions[currentIndex];
+            const globalQuestionNumber = selectedPart * QUESTIONS_PER_PART + currentIndex + 1;
+            
+            // Update info
+            document.getElementById('testPartInfo').textContent = `Part ${selectedPart + 1} | Global Question ${globalQuestionNumber}/${allQuestions.length}`;
+            
+            // Update question text
+            document.getElementById('questionText').textContent = question.question;
+            document.getElementById('questionNumber').textContent = `${currentIndex + 1} / ${questions.length}`;
+            document.getElementById('progressText').textContent = `Question ${currentIndex + 1} of ${questions.length}`;
+
+            // Update progress bar
+            const progress = ((currentIndex + 1) / questions.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+
+            // Render answers
+            const container = document.getElementById('answersContainer');
+            container.innerHTML = '';
+            
+            question.answers.forEach((answer, idx) => {
+                const label = document.createElement('label');
+                label.className = 'answer-option';
+                
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'answer';
+                radio.value = idx;
+                radio.checked = answers[currentIndex] === idx;
+                
+                const text = document.createElement('span');
+                text.className = 'answer-text';
+                text.textContent = answer;
+                
+                label.appendChild(radio);
+                label.appendChild(text);
+                label.onclick = () => selectAnswer(idx, label);
+                
+                container.appendChild(label);
+            });
+
+            // Reset feedback
+            document.getElementById('feedbackSection').classList.remove('show');
+            document.getElementById('checkAnswerBtn').disabled = false;
+            document.getElementById('checkAnswerBtn').textContent = 'Check Answer';
+            answerChecked = false;
+
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = currentIndex === 0;
+            document.getElementById('nextBtn').style.display = currentIndex === questions.length - 1 ? 'none' : 'block';
+            document.getElementById('finishBtn').style.display = currentIndex === questions.length - 1 ? 'block' : 'none';
+
+            updateScoreDisplay();
+        }
+
+        function selectAnswer(answerIdx, labelElement) {
+            answers[currentIndex] = answerIdx;
+            
+            // Update UI
+            const options = document.querySelectorAll('.answer-option');
+            options.forEach(opt => opt.classList.remove('selected'));
+            labelElement.classList.add('selected');
+            
+            // Reset feedback when answer changes
+            document.getElementById('feedbackSection').classList.remove('show');
+            document.getElementById('checkAnswerBtn').disabled = false;
+            document.getElementById('checkAnswerBtn').textContent = 'Check Answer';
+            answerChecked = false;
+            
+            updateScoreDisplay();
+        }
+
+        function checkAnswer() {
+            if (answers[currentIndex] === undefined) {
+                alert('Please select an answer first!');
+                return;
+            }
+
+            const question = questions[currentIndex];
+            const selectedAnswer = answers[currentIndex];
+            const isCorrect = selectedAnswer === question.correct;
+            
+            // Show feedback
+            const feedbackSection = document.getElementById('feedbackSection');
+            const feedbackTitle = document.getElementById('feedbackTitle');
+            const feedbackText = document.getElementById('feedbackText');
+            
+            if (isCorrect) {
+                feedbackSection.className = 'feedback-section show feedback-correct';
+                feedbackTitle.textContent = '✓ Correct!';
+                feedbackText.innerHTML = '<strong>Your answer:</strong> ' + question.answers[selectedAnswer];
+            } else {
+                feedbackSection.className = 'feedback-section show feedback-incorrect';
+                feedbackTitle.textContent = '✗ Incorrect!';
+                feedbackText.innerHTML = `
+                    <strong>Your answer:</strong> ${question.answers[selectedAnswer]}<br><br>
+                    <strong>Correct answer:</strong> ${question.answers[question.correct]}
+                `;
+            }
+
+            // Highlight correct and selected answers
+            const options = document.querySelectorAll('.answer-option');
+            options.forEach((opt, idx) => {
+                opt.classList.remove('selected');
+                if (idx === question.correct) {
+                    opt.classList.add('correct');
+                } else if (idx === selectedAnswer && !isCorrect) {
+                    opt.classList.add('incorrect');
+                }
+            });
+
+            // Disable check button
+            document.getElementById('checkAnswerBtn').disabled = true;
+            document.getElementById('checkAnswerBtn').textContent = 'Answer Checked';
+            answerChecked = true;
+
+            updateScoreDisplay();
+        }
+
+        function updateScoreDisplay() {
+            let correct = 0, incorrect = 0, unanswered = 0;
+            
+            questions.forEach((q, idx) => {
+                if (answers[idx] === undefined) {
+                    unanswered++;
+                } else if (answers[idx] === q.correct) {
+                    correct++;
+                } else {
+                    incorrect++;
+                }
+            });
+            
+            document.getElementById('scoreCorrect').textContent = correct;
+            document.getElementById('scoreIncorrect').textContent = incorrect;
+            document.getElementById('scoreUnanswered').textContent = unanswered;
+        }
+
+        function nextQuestion() {
+            if (currentIndex < questions.length - 1) {
+                currentIndex++;
+                displayQuestion();
+                window.scrollTo(0, 0);
+            }
+        }
+
+        function previousQuestion() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                displayQuestion();
+                window.scrollTo(0, 0);
+            }
+        }
+
+        function finishTest() {
+            showResults();
+        }
+
+        function showResults() {
+            let correct = 0, incorrect = 0, unanswered = 0;
+            
+            questions.forEach((q, idx) => {
+                if (answers[idx] === undefined) {
+                    unanswered++;
+                } else if (answers[idx] === q.correct) {
+                    correct++;
+                } else {
+                    incorrect++;
+                }
+            });
+            
+            const total = questions.length;
+            const percentage = Math.round((correct / total) * 100);
+            
+            document.getElementById('scorePercentage').textContent = percentage + '%';
+            document.getElementById('finalCorrect').textContent = correct;
+            document.getElementById('finalIncorrect').textContent = incorrect;
+            document.getElementById('finalUnanswered').textContent = unanswered;
+            
+            document.getElementById('testSection').classList.remove('active');
+            document.getElementById('resultsSection').classList.remove('hidden');
+            
+            window.scrollTo(0, 0);
+        }
+
+        function restartTest() {
+            answers = {};
+            currentIndex = 0;
+            testFinished = false;
+            answerChecked = false;
+            document.getElementById('testSection').classList.add('active');
+            document.getElementById('resultsSection').classList.add('hidden');
+            displayQuestion();
+            window.scrollTo(0, 0);
+        }
+
+        function selectPart() {
+            document.getElementById('testSection').classList.remove('active');
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('partSelector').classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        function loadNewFile() {
+            document.getElementById('uploadSection').style.display = 'block';
+            document.getElementById('testSection').classList.remove('active');
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('partSelector').classList.remove('active');
+            document.getElementById('fileInput').value = '';
+            document.getElementById('loadMessage').innerHTML = '';
+            allQuestions = [];
+            questions = [];
+            answers = {};
+            currentIndex = 0;
+            selectedPart = null;
+            answerChecked = false;
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>
